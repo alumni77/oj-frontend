@@ -6,7 +6,9 @@ interface GlobalComponents {
   [key: string]: Component
 }
 
-const allGlobalComponents: GlobalComponents = { 'svg-icon': SvgIcon }
+const allGlobalComponents: GlobalComponents = {
+  'svg-icon': SvgIcon,
+}
 
 export default {
   install(app: App) {

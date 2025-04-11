@@ -11,7 +11,10 @@ const request = axios.create({
 //第二步：请求拦截器与响应拦截器
 request.interceptors.request.use((config) => {
   //config配置对象，headers请求头属性，Authorization是token的请求头属性
-
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers['Authorization'] = token
+  }
   //返回配置对象
   return config
 })
