@@ -2,7 +2,7 @@
   <div class="app-wrapper">
     <!-- 顶部导航栏 -->
     <header class="app-header">
-      <div class="header-left">
+      <div class="header-left" @click="goHome">
         <img src="@/assets/logo.png" alt="logo" class="logo">
       </div>
       <div class="header-center">
@@ -139,7 +139,7 @@
 </template>
 
 <script setup lang="ts" name="layout">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { List, Edit, TrendCharts, HomeFilled, Histogram, InfoFilled, User, Document, Setting, SwitchButton, CaretBottom } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
@@ -254,6 +254,13 @@ const getDefaultUserInfo = (): UserInfoVO => {
 onMounted(async () => {
   checkLoginStatus()
 })
+// 监听路由变化
+watch(
+  () => router.currentRoute.value.path,
+  (newPath) => {
+    activeMenu.value = newPath
+  }
+)
 const handleLogin = () => {
   router.push('/login?type=login')
 }
@@ -267,6 +274,11 @@ const handleLogout = () => {
   isLoggedIn.value = false
   ElMessage.success('退出登录')
   router.push('/home')
+}
+
+const goHome = () => {
+  router.push('/home')
+  activeMenu.value = '/home'
 }
 </script>
 
