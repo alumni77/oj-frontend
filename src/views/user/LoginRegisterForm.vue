@@ -68,14 +68,15 @@
   </div>
 </template>
 
-<script setup lang="ts" name="LoginRegisterForm">
-import { ref, reactive, onBeforeUnmount } from 'vue'
+<script setup lang="ts" name="loginRegisterForm">
+import { ref, reactive, onBeforeUnmount, onMounted, watch } from 'vue'
 import { User, Lock } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import useUserStore from '@/store/modules/user'
 import { CheckUsername, GetCode } from '@/api/passport'
 import type { CheckUsernameDTO, RegisterDTO } from '@/api/passport/type'
+import { useRoute } from 'vue-router'
 
 const router = useRouter()
 const loading = ref(false)
@@ -83,6 +84,7 @@ const isLogin = ref(true)
 const loginFormRef = ref()
 const registerFormRef = ref()
 const userStore = useUserStore()
+
 const base64 = ref('')
 const captchaCode = ref('')
 // 设置超时时间常量（毫秒）
@@ -91,6 +93,26 @@ let timeoutTimer: number | null = null
 // 控制验证码显示状态
 const captchaShown = ref(false)
 const captchaLoading = ref(false)
+const route = useRoute()
+
+// 根据路由参数初始化表单类型
+const initFormType = () => {
+  const type = route.query.type as string
+  isLogin.value = type !== 'register'
+}
+
+// 组件挂载时检查路由参数
+onMounted(() => {
+  initFormType()
+})
+
+// 监听路由参数变化
+watch(
+  () => route.query.type,
+  () => {
+    initFormType()
+  }
+)
 
 // 显示验证码方法
 const showCaptcha = async () => {
@@ -289,7 +311,7 @@ const handleLogin = async () => {
       }, REQUEST_TIMEOUT);
 
       try {
-        let res = await userStore.Login(loginForm);
+        let res = await userStore.Login(loginForm)
         // 清除超时定时器
         if (timeoutTimer) {
           clearTimeout(timeoutTimer);
@@ -300,7 +322,7 @@ const handleLogin = async () => {
           // 登录成功后跳转到首页
           userStore.updateUserInfo(res.data);
           ElMessage.success('登录成功');
-          router.push('/home');
+          router.push('/');
         } else {
           // 登录失败提示
           ElMessage.error(res?.message || '登录失败，请重试');
@@ -435,9 +457,28 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
+  /* 改为最小高度 */
+  height: 100%;
+  /* 确保高度填满 */
+  width: 100%;
+  /* 确保宽度填满 */
+  margin: 0;
+  /* 移除可能的边距 */
+  padding: 0;
+  /* 移除可能的内边距 */
   background-color: #f5f7fa;
   background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-size: cover;
+  /* 确保背景覆盖 */
+  background-attachment: fixed;
+  /* 固定背景 */
+  position: absolute;
+  /* 绝对定位 */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .login-card {

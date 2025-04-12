@@ -6,12 +6,69 @@ const router = createRouter({
     {
       path: '/login',
       component: () => import('@/views/user/LoginRegisterForm.vue'),
-      name: 'LoginRegisterForm',
+      name: 'loginRegisterForm',
     },
     {
       path: '/',
-      component: () => import('@/views/Home.vue'),
-      name: 'Home',
+      component: () => import('@/layout/index.vue'),
+      name: 'layout',
+      redirect: '/home',
+      children: [
+        {
+          path: 'home',
+          component: () => import('@/views/Home.vue'),
+          name: 'home',
+          meta: { title: '首页' },
+        },
+        {
+          path: 'problem',
+          component: () => import('@/views/problem/index.vue'),
+          name: 'problem',
+          meta: { title: '题目' },
+        },
+        {
+          path: 'training',
+          component: () => import('@/views/training/index.vue'),
+          name: 'training',
+          meta: { title: '训练' },
+        },
+        {
+          path: 'judge',
+          component: () => import('@/views/judge/index.vue'),
+          name: 'judge',
+          meta: { title: '评测' },
+        },
+        {
+          path: 'rank',
+          component: () => import('@/views/rank/index.vue'),
+          name: 'rank',
+          meta: { title: '排名' },
+        },
+        {
+          path: 'about',
+          component: () => import('@/views/about/index.vue'),
+          name: 'about',
+          meta: { title: '关于' },
+        },
+        {
+          path: 'profile',
+          component: () => import('@/views/user/Profile.vue'),
+          name: 'profile',
+          meta: { title: '个人中心' },
+        },
+        {
+          path: 'submission',
+          component: () => import('@/views/user/Submssion.vue'),
+          name: 'submission',
+          meta: { title: '提交记录' },
+        },
+        {
+          path: 'settings',
+          component: () => import('@/views/user/Settings.vue'),
+          name: 'settings',
+          meta: { title: '账号设置' },
+        },
+      ],
     },
     {
       path: '/404',

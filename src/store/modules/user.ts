@@ -3,13 +3,14 @@ import { defineStore } from 'pinia'
 import { Login, Register } from '@/api/passport'
 //引入类型
 import type { LoginDTO, RegisterDTO, UserInfoVO } from '@/api/passport/type'
+import { getToken, setToken } from '@/utils/token'
 
 // 创建用户相关的小仓库
 const useUserStore = defineStore('User', {
   // 小仓库存储数据的地方
   state: () => {
     return {
-      token: localStorage.getItem('token') || '', // 用户的唯一标识
+      token: getToken() || '', // 用户登录的token
       userInfo: JSON.parse(
         localStorage.getItem('userInfo') || '{}',
       ) as UserInfoVO, // 用户信息
@@ -21,14 +22,12 @@ const useUserStore = defineStore('User', {
     async Login(data: LoginDTO) {
       const response: any = await Login(data)
       const redData = response.data
-
       if (redData.code == 200) {
         // 从响应头中获取token
-        const token = response.config.headers['Authorization']
-
+        const token = response.headers.authorization
         if (token) {
           this.token = token
-          localStorage.setItem('token', token)
+          setToken(token) // 将token存储到本地
           return {
             sucess: true,
             data: redData.data,
