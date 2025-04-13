@@ -27,6 +27,13 @@ const router = createRouter({
           meta: { title: '题目' },
         },
         {
+          path: 'problem/:pid',
+          component: () => import('@/views/problem/problem.vue'),
+          name: 'problemDetail',
+          meta: { title: '题目详情' },
+          props: true, // 允许将路由参数作为props传递给组件
+        },
+        {
           path: 'training',
           component: () => import('@/views/training/index.vue'),
           name: 'training',

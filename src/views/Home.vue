@@ -49,15 +49,11 @@
             <el-skeleton :rows="5" animated />
           </div>
 
-          <el-table v-else :data="problemList" style="width: 100%" @row-click="handleProblemClick">
+          <el-table :data="problemList" style="width: 100%" @row-click="handleProblemClick">
             <el-table-column prop="problemId" label="题目ID" width="400" align="center" header-align="center" />
             <el-table-column prop="title" label="标题" width="400" align="center" header-align="center" />
             <el-table-column prop="updateTime" label="最近更新" width="500" align="center" header-align="center" />
           </el-table>
-
-          <div v-if="!problemLoading && problemList.length === 0" class="empty-data">
-            暂无最新题目数据
-          </div>
         </el-card>
 
       </div>
