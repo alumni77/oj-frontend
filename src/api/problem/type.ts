@@ -135,3 +135,27 @@ export interface ProblemInfoVO {
     [key: string]: string
   }
 }
+
+export interface ProblemCountVO {
+  pid: number
+  total: number
+  ac: number
+  mle: number
+  tle: number
+  re: number
+  pe: number
+  ce: number
+  wa: number
+  se: number
+  pa: number
+}
+
+export interface TestJudgeDTO {
+  pid: number
+  type: string
+  code: string
+  language: string
+  userInput: string
+  isRemoteJudge: boolean
+  mode: string
+}

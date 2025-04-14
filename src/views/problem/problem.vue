@@ -41,7 +41,7 @@
                 <Position />
               </el-icon> 做题清单
             </el-button>
-            <el-button size="small" plain>
+            <el-button size="small" plain @click="showStatistics = true">
               <el-icon>
                 <DataAnalysis />
               </el-icon> 题目统计
@@ -53,6 +53,29 @@
             </el-button>
           </div>
         </div>
+
+        <!-- 添加题目统计弹窗 -->
+        <el-dialog v-model="showStatistics" title="提交统计" width="500px" align-center destroy-on-close :modal="true"
+          :append-to-body="true" :close-on-click-modal="true" center>
+          <div class="statistics-container">
+            <!-- 图例 -->
+            <div class="chart-legend">
+              <span v-for="status in ['AC', 'RE', 'CE', 'WA']" :key="status" class="legend-item">
+                <span class="legend-color" :style="{ backgroundColor: statusColorMap[status] }"></span>
+                {{ status }}
+              </span>
+            </div>
+            <!-- 添加图表容器 -->
+            <div class="statistics-chart">
+              <v-chart class="chart" :option="chartOption" autoresize />
+            </div>
+          </div>
+          <template #footer>
+            <span class="dialog-footer">
+              <el-button @click="showStatistics = false">关闭</el-button>
+            </span>
+          </template>
+        </el-dialog>
 
         <!-- 题目基本信息 -->
         <div class="problem-info">
@@ -71,7 +94,7 @@
           </div>
           <div class="info-item">
             <span class="info-label">分数：</span>
-            <span class="info-value">{{ problem.score || 100 }} OI排行榜分数: {{ calculateRankScore() }}</span>
+            <span class="info-value">{{ problem.ioScore || 100 }} OI排行榜分数: {{ calculateRankScore() }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">出题人：</span>
@@ -84,44 +107,45 @@
           <!-- 题目描述 -->
           <section class="content-section">
             <h3 class="section-title">描述</h3>
-            <div class="section-content" v-html="problem.description"></div>
+            <div class="section-content" v-html="descriptionHTML"></div>
           </section>
 
           <!-- 输入描述 -->
           <section class="content-section">
             <h3 class="section-title">输入描述</h3>
-            <div class="section-content" v-html="problem.inputDesc"></div>
+            <div class="section-content" v-html="inputDescHTML"></div>
           </section>
 
           <!-- 输出描述 -->
           <section class="content-section">
             <h3 class="section-title">输出描述</h3>
-            <div class="section-content" v-html="problem.outputDesc"></div>
+            <div class="section-content" v-html="outputDescHTML"></div>
           </section>
 
           <!-- 样例 -->
           <section class="content-section">
-            <h3 class="section-title">用例输入 {{ problem.samples.length > 0 ? '1' : '' }}
-              <el-tag v-if="problem.samples.length > 0" size="small" type="info" class="sample-copy"
-                @click="copyToInput(problem.samples[0].input)">复制</el-tag>
+            <h3 class="section-title">用例输入 {{ problem.parsedExamples && problem.parsedExamples.length > 0 ? '1' : '' }}
+              <el-tag v-if="problem.parsedExamples && problem.parsedExamples.length > 0" size="small" type="info"
+                class="sample-copy" @click="copyToInput(problem.parsedExamples[0].input)">复制</el-tag>
             </h3>
-            <div class="sample-content" v-if="problem.samples.length > 0">
-              <pre>{{ problem.samples[0].input }}</pre>
+            <div class="sample-content" v-if="problem.parsedExamples && problem.parsedExamples.length > 0">
+              <pre>{{ problem.parsedExamples[0].input }}</pre>
             </div>
           </section>
 
           <section class="content-section">
-            <h3 class="section-title">用例输出 {{ problem.samples.length > 0 ? '1' : '' }}
-              <el-tag v-if="problem.samples.length > 0" size="small" type="info" class="sample-copy"
-                @click="copyOutput(problem.samples[0].output)">复制</el-tag>
+            <h3 class="section-title">用例输出 {{ problem.parsedExamples && problem.parsedExamples.length > 0 ? '1' : '' }}
+              <el-tag v-if="problem.parsedExamples && problem.parsedExamples.length > 0" size="small" type="info"
+                class="sample-copy" @click="copyOutput(problem.parsedExamples[0].output)">复制</el-tag>
             </h3>
-            <div class="sample-content" v-if="problem.samples.length > 0">
-              <pre>{{ problem.samples[0].output }}</pre>
+            <div class="sample-content" v-if="problem.parsedExamples && problem.parsedExamples.length > 0">
+              <pre>{{ problem.parsedExamples[0].output }}</pre>
             </div>
           </section>
 
           <!-- 其他样例(如果有多个) -->
-          <template v-for="(sample, index) in problem.samples.slice(1)" :key="index">
+          <template v-for="(sample, index) in (problem.parsedExamples ? problem.parsedExamples.slice(1) : [])"
+            :key="index">
             <section class="content-section">
               <h3 class="section-title">用例输入 {{ index + 2 }}
                 <el-tag size="small" type="info" class="sample-copy" @click="copyToInput(sample.input)">复制</el-tag>
@@ -141,11 +165,19 @@
             </section>
           </template>
 
+          <!-- 样例之后，添加提示信息 -->
           <!-- 提示信息 -->
           <section class="content-section" v-if="problem.hint">
+            <h3 class="section-title">提示</h3>
+            <div class="section-content" v-html="hintHTML"></div>
+          </section>
+
+          <!-- 最后显示来源 -->
+          <section class="content-section" v-if="problem.source">
             <h3 class="section-title">来源</h3>
             <div class="section-content">{{ problem.source || 'CodesOnline' }}</div>
           </section>
+
         </div>
       </el-card>
     </div>
@@ -166,18 +198,6 @@
                   </el-icon>
                   重置
                 </el-button>
-                <el-button size="small" type="primary" :loading="testing" @click="runTest">
-                  <el-icon>
-                    <VideoPlay />
-                  </el-icon>
-                  运行
-                </el-button>
-                <el-button size="small" type="success" :loading="submitting" @click="submitCode">
-                  <el-icon>
-                    <Upload />
-                  </el-icon>
-                  提交
-                </el-button>
               </el-button-group>
             </div>
           </div>
@@ -188,34 +208,121 @@
           <div ref="editorContainer" class="monaco-editor-container"></div>
         </div>
 
-        <!-- 测试区域 -->
-        <div class="test-area">
-          <el-collapse v-model="activeCollapse">
-            <el-collapse-item title="测试用例" name="testCase">
-              <div class="test-input">
-                <div class="input-header">
-                  <span>输入</span>
+        <!-- 编辑器底部按钮区域 -->
+        <div class="editor-bottom-actions">
+          <el-button size="large" type="success" @click="toggleOnlineTest">
+            <el-icon>
+              <Check />
+            </el-icon> 在线自测
+          </el-button>
+          <el-button size="large" type="primary" :loading="submitting" @click="submitCode">
+            <el-icon>
+              <Upload />
+            </el-icon> 提交评测
+          </el-button>
+        </div>
+
+        <!-- 在线测试面板 -->
+        <div v-if="showTestPanel" class="online-test-panel">
+          <el-tabs v-model="testTab" class="test-tabs">
+            <!-- 测试用例标签页，只包含输入部分 -->
+            <el-tab-pane label="测试用例" name="testCase">
+              <div class="test-io-section">
+                <div class="io-label">自测输入</div>
+                <el-input v-model="testInput" type="textarea" :rows="3" placeholder="输入测试数据..." />
+                <div class="test-actions">
+                  <el-button size="small" type="success" @click="runOnlineTest">
+                    <el-icon>
+                      <VideoPlay />
+                    </el-icon> 运行自测
+                  </el-button>
                   <el-button size="small" text @click="loadSampleInput">
                     加载示例输入
                   </el-button>
                 </div>
-                <el-input v-model="testInput" type="textarea" :rows="3" placeholder="输入测试数据..." />
               </div>
-              <div class="test-output" v-if="testResult">
-                <div class="output-header">
-                  <span>输出</span>
-                  <el-tag :type="getStatusType(testResult.status)" size="small">
-                    {{ testResult.status }}
-                  </el-tag>
+            </el-tab-pane>
+
+            <!-- 运行结果标签页，显示结果内容 -->
+            <el-tab-pane label="运行结果" name="testResult">
+              <div v-if="testStatus === 'waiting'" class="test-waiting">
+                <el-icon>
+                  <Loading />
+                </el-icon>
+                <span>输入测试用例后，点击运行自测，这里将会显示运行结果</span>
+              </div>
+              <div v-else-if="testStatus === 'testing'" class="test-loading">
+                <el-icon class="is-loading">
+                  <Loading />
+                </el-icon>
+                <span>正在测评中...</span>
+              </div>
+              <div v-else-if="testStatus === 'success'" class="test-result success">
+                <div class="test-result-header">
+                  <div class="test-status">
+                    <el-icon>
+                      <CircleCheckFilled />
+                    </el-icon>
+                    <span>Success</span>
+                  </div>
+                  <div class="test-info">
+                    <span class="test-time">
+                      <el-icon>
+                        <Timer />
+                      </el-icon> 运行时间 {{ testResult.time }}ms
+                    </span>
+                    <span class="test-memory">
+                      <el-icon>
+                        <Files />
+                      </el-icon> 运行内存 {{ testResult.memory }}KB
+                    </span>
+                  </div>
                 </div>
-                <el-input v-model="testResult.output" type="textarea" :rows="3" readonly />
-                <div v-if="testResult.time" class="result-info">
-                  <span>执行时间：{{ testResult.time }}ms</span>
-                  <span>内存占用：{{ testResult.memory }}KB</span>
+
+                <div class="test-io-section">
+                  <div class="io-label">自测输入</div>
+                  <el-input v-model="testInput" type="textarea" :rows="3" readonly />
+                </div>
+
+                <div class="test-io-section">
+                  <div class="io-label">实际输出</div>
+                  <el-input v-model="testResult.userOutput" type="textarea" :rows="3" readonly />
                 </div>
               </div>
-            </el-collapse-item>
-          </el-collapse>
+              <div v-else-if="testStatus === 'error'" class="test-result error">
+                <div class="test-result-header">
+                  <div class="test-status error">
+                    <el-icon>
+                      <CircleCloseFilled />
+                    </el-icon>
+                    <span>Error</span>
+                  </div>
+                  <div class="test-info">
+                    <span class="test-time">
+                      <el-icon>
+                        <Timer />
+                      </el-icon> 运行时间 {{ testResult.time }}ms
+                    </span>
+                    <span class="test-memory">
+                      <el-icon>
+                        <Files />
+                      </el-icon> 运行内存 {{ testResult.memory }}KB
+                    </span>
+                  </div>
+                </div>
+
+                <div class="test-io-section">
+                  <div class="io-label">自测输入</div>
+                  <el-input v-model="testInput" type="textarea" :rows="3" readonly />
+                </div>
+
+                <div class="test-io-section">
+                  <div class="io-label">错误信息</div>
+                  <el-input v-model="testResult.output" type="textarea" :rows="3" readonly />
+                </div>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
         </div>
       </el-card>
     </div>
@@ -223,13 +330,338 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import MarkdownIt from 'markdown-it'
+import mk from 'markdown-it-katex'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css'
+import 'katex/dist/katex.min.css'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Document, ArrowDown, Position, DataAnalysis, SwitchButton } from '@element-plus/icons-vue'
+import { Check, Upload, Loading, Timer, Files, CircleCheckFilled, VideoPlay } from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor'
-import { getProblemInfo } from '@/api/problem'
-import { ProblemEntity } from '@/api/problem/type'
+import { getProblemInfo, getTestJudgeResult, submitProblemTestJudge } from '@/api/problem'
+import { ProblemCountVO, ProblemEntity, TestJudgeDTO } from '@/api/problem/type'
+// 导入图表组件和相关功能
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { PieChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+import VChart, { THEME_KEY } from 'vue-echarts'
+import type { EChartsOption } from 'echarts/types/dist/shared'
+
+// 在线测试相关变量
+const showTestPanel = ref(false)
+const testTab = ref('testCase')
+const testStatus = ref('input') // 'input', 'waiting', 'testing', 'success', 'error'
+
+// 切换测试面板显示/隐藏
+const toggleOnlineTest = () => {
+  showTestPanel.value = !showTestPanel.value
+}
+
+// 运行在线测试
+const runOnlineTest = async () => {
+  if (!testInput.value) {
+    ElMessage.warning('请输入测试数据')
+    return
+  }
+
+  if (!code.value) {
+    ElMessage.warning('请输入代码')
+    return
+  }
+
+  testStatus.value = 'testing'
+  testing.value = true
+
+  // 切换到结果标签页
+  testTab.value = 'testResult'
+
+  try {
+    // 准备评测数据
+    const testJudgeData: TestJudgeDTO = {
+      pid: problem.value.id,
+      language: languages.value.find(l => l.value === language.value)?.label || 'C++',
+      code: code.value,
+      type: "public",
+      userInput: testInput.value,
+      mode: "text/x-c++src",
+      isRemoteJudge: false
+    }
+
+    // 使用API函数而非直接fetch
+    const response = await submitProblemTestJudge(testJudgeData)
+
+    if (response.data && response.data.code === 200) {
+      // 获取评测结果的key
+      const testJudgeKey = response.data.data
+
+      // 轮询获取评测结果
+      await getTestResult(testJudgeKey)
+    } else {
+      ElMessage.error(response.data?.msg || '评测提交失败')
+      testStatus.value = 'input'
+    }
+  } catch (error) {
+    console.error('测试请求失败:', error)
+    ElMessage.error('评测请求失败')
+    testStatus.value = 'input'
+  } finally {
+    testing.value = false
+  }
+}
+
+// 获取测试结果
+const getTestResult = async (testJudgeKey: string) => {
+  try {
+    // 轮询获取测试结果
+    let maxAttempts = 30
+    let attempts = 0
+    let lastData = null
+
+    const poll = async () => {
+      if (attempts >= maxAttempts) {
+        ElMessage.error('评测超时，请稍后重试')
+        testStatus.value = 'input'
+        return
+      }
+
+      attempts++
+
+      try {
+        // 调用 API 获取评测结果
+        const response = await getTestJudgeResult(testJudgeKey)
+
+        if (response.data && response.data.code === 200) {
+          const testData = response.data.data
+
+          // 检查是否是初始数据
+          const isPending = testData.status === undefined ||
+            testData.status === null ||
+            testData.userOutput === undefined ||
+            testData.userOutput === null ||
+            testData.userOutput === "" ||
+            response.data.data === "PENDING"
+
+          if (!isPending && testData.status === 0) { // 成功且数据有效
+            testResult.value = {
+              status: 'AC',
+              output: testData.userOutput,
+              userOutput: testData.userOutput,
+              time: testData.time,
+              memory: testData.memory
+            }
+            testStatus.value = 'success'
+            // 确保显示在运行结果标签页
+            testTab.value = 'testResult'
+            return // 成功获取到结果，结束轮询
+          } else if (!isPending && testData.status !== 0) { // 错误且数据有效
+            testResult.value = {
+              status: 'ERROR',
+              output: testData.stderr || '运行错误',
+              userOutput: testData.userOutput || '',
+              time: testData.time,
+              memory: testData.memory
+            }
+            testStatus.value = 'error'
+            // 确保显示在运行结果标签页
+            testTab.value = 'testResult'
+            return // 获取到错误结果，结束轮询
+          } else {
+            // 数据尚未准备好，继续轮询
+            // 统一使用 500ms 的轮询间隔
+            setTimeout(poll, 500)
+          }
+        } else {
+          // 检查是否是 PENDING 状态
+          if (response.data && response.data.data === "PENDING") {
+            setTimeout(poll, 500)
+          } else {
+            // 遇到其他错误
+            ElMessage.error(response.data?.msg || '获取评测结果失败')
+            testStatus.value = 'input'
+          }
+        }
+      } catch (error) {
+        console.error('获取测试结果失败:', error)
+        // 出错后继续轮询，保持500ms的间隔
+        setTimeout(poll, 500)
+      }
+    }
+
+    // 开始轮询
+    await poll()
+  } catch (error) {
+    console.error('测试结果获取失败:', error)
+    ElMessage.error('获取评测结果失败')
+    testStatus.value = 'input'
+  }
+}
+// 保留并增强第一个 submitCode 函数
+const submitCode = async () => {
+  if (!code.value.trim()) {
+    ElMessage.warning('请输入代码')
+    return
+  }
+
+  submitting.value = true
+
+  try {
+    // 准备评测数据
+    const submitJudgeData = {
+      pid: Number(problemId.value),
+      language: languages.value.find(l => l.value === language.value)?.label || 'C++',
+      code: code.value,
+      type: "public",
+      mode: languageMap[language.value] || 'text/x-c++src',
+      isRemoteJudge: false
+    }
+
+    // 向后端发送提交评测请求
+    const response = await fetch('/api/judge/submit-judge', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(submitJudgeData)
+    })
+
+    const result = await response.json()
+
+    if (result.code === 200) {
+      ElMessage.success('提交成功，评测中')
+      // 可以跳转到提交记录页面或者显示提交结果
+      // 可选: 添加到提交记录
+      submissions.value.unshift({
+        submitTime: new Date().toLocaleString(),
+        status: '评测中',
+        language: languages.value.find(l => l.value === language.value)?.label || 'C++',
+        time: 0,
+        memory: 0
+      })
+    } else {
+      ElMessage.error(result.msg || '提交评测失败')
+    }
+  } catch (error) {
+    console.error('提交评测失败:', error)
+    ElMessage.error('提交评测失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+// 注册 ECharts 组件
+use([
+  CanvasRenderer,
+  PieChart,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent
+])
+
+// 添加统计弹窗控制
+const showStatistics = ref(false)
+
+// 状态颜色映射
+const statusColorMap = {
+  'AC': '#1ac951', // 通过 - 绿色
+  'WA': '#f56c6c', // 答案错误 - 红色
+  'TLE': '#e6a23c', // 超时 - 黄色
+  'MLE': '#909399', // 内存超限
+  'RE': '#ff9900',  // 运行错误 - 橙色
+  'CE': '#F9A700',  // 编译错误 - 金色
+  'SE': '#97a8be',  // 系统错误
+  'PE': '#b0bec5',  // 格式错误 
+  'PA': '#67c23a'   // 部分通过
+}
+
+// 图表配置
+const chartOption = computed<EChartsOption>(() => {
+  // 统计数据处理
+  const count = problem.value?.problemCount || {
+    total: 0,
+    ac: 0,
+    wa: 0,
+    tle: 0,
+    mle: 0,
+    re: 0,
+    ce: 0,
+    se: 0,
+    pe: 0,
+    pa: 0
+  }
+
+  // 计算总提交数
+  const total = count.total ||
+    (count.ac + count.wa + count.tle + count.mle +
+      count.re + count.ce + count.se + count.pe + count.pa)
+
+  // 两个环形图数据系列
+  const innerData = [
+    { value: count.ac, name: 'AC', itemStyle: { color: statusColorMap.AC } },
+    { value: count.re, name: 'RE', itemStyle: { color: statusColorMap.RE } },
+    { value: count.ce, name: 'CE', itemStyle: { color: statusColorMap.CE } },
+    { value: count.wa, name: 'WA', itemStyle: { color: statusColorMap.WA } }
+  ].filter(item => item.value > 0)
+
+  // 如果没有数据，添加占位
+  if (innerData.length === 0) {
+    innerData.push({
+      value: 1,
+      name: '暂无数据',
+      itemStyle: { color: '#dcdfe6' }
+    })
+  }
+
+  // 计算各状态百分比和标签文本
+  const makeLabel = (params: any) => {
+    const percent = total > 0 ? Math.round((params.value / total) * 10000) / 100 : 0
+    return `${params.name}: ${params.value}\n${percent}%`
+  }
+
+  // 图表配置
+  return {
+    legend: {
+      show: false
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: '{a} <br/>{b}: {c} ({d}%)'
+    },
+    series: [
+      {
+        name: '提交状态',
+        type: 'pie',
+        radius: ['50%', '70%'],
+        avoidLabelOverlap: false,
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        },
+        label: {
+          show: true,
+          position: 'outside',
+          formatter: makeLabel
+        },
+        data: innerData
+      }
+    ]
+  }
+})
+
+// 计算总提交数
+const totalSubmissions = computed(() => {
+  const count = problem.value?.problemCount || {
+    ac: 0, wa: 0, tle: 0, mle: 0, re: 0, ce: 0, se: 0, pe: 0, pa: 0
+  }
+  return count.total ||
+    (count.ac + count.wa + count.tle + count.mle +
+      count.re + count.ce + count.se + count.pe + count.pa)
+})
 
 // 获取路由参数
 const route = useRoute()
@@ -254,6 +686,35 @@ const showTagTooltip = ref(false)
 const editorContainer = ref<HTMLElement | null>(null)
 let monacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 
+// 初始化 markdown-it 实例
+const md = new MarkdownIt({
+  html: true,
+  linkify: true,
+  typographer: true,
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return '<pre class="hljs"><code>' +
+          hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
+          '</code></pre>'
+      } catch (__) { }
+    }
+    return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>'
+  }
+}).use(mk) // 使用 KaTeX 插件
+
+// 渲染 Markdown 内容
+const renderMarkdown = (content: string): string => {
+  if (!content) return ''
+  return md.render(content)
+}
+
+// 使用计算属性来处理 Markdown 内容
+const descriptionHTML = computed(() => renderMarkdown(problem.value.description || ''))
+const inputDescHTML = computed(() => renderMarkdown(problem.value.input || ''))
+const outputDescHTML = computed(() => renderMarkdown(problem.value.output || ''))
+const hintHTML = computed(() => renderMarkdown(problem.value.hint || ''))
+
 // 语言映射
 const languageMap: Record<string, string> = {
   'cpp': 'cpp',
@@ -262,49 +723,54 @@ const languageMap: Record<string, string> = {
 }
 
 // 支持的编程语言
-const languages = [
-  { label: 'C++', value: 'cpp' },
-  { label: 'Java', value: 'java' },
-  { label: 'Python3', value: 'python' }
-]
+const languages = ref<{ label: string, value: string }[]>([])
 
 // 语言模板
-const templates = {
-  cpp: `#include <iostream>
-using namespace std;
-
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a + b << endl;
-    return 0;
-}`,
-  java: `import java.util.Scanner;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        int a = sc.nextInt();
-        int b = sc.nextInt();
-        System.out.println(a + b);
-    }
-}`,
-  python: `a, b = map(int, input().split())
-print(a + b)`
-}
+const templates = ref<Record<string, string>>({})
 
 // 静态题目数据 - 实际项目中应该从API获取
-const problem: ProblemEntity = ref({
-  problemId: route.params.pid,
-  title: title.value || 'A+B 问题',
+// 修改 problem 的类型定义
+const problem = ref<ProblemEntity & { problemCount?: ProblemCountVO }>({
+  id: Number(pid.value),
+  problemId: String(route.params.pid),
+  title: title.value?.toString() || 'A+B 问题',
+  author: 'root',
+  type: 0, // ACM模式
+  judgeMode: 'default',
+  judgeCaseMode: 'default',
   difficulty: 3,
   difficultyText: '基础',
   timeLimit: 1000,
   memoryLimit: 128,
+  stackLimit: 128,
   description: '输入两个整数a,b，输出它们的和。',
-  inputDesc: '两个以空格分分隔的整数。',
-  outputDesc: '一个整数。',
-  samples: [
+  input: '两个以空格分分隔的整数。',
+  output: '一个整数。',
+  examples: '',
+  hint: '注意处理负数的情况。',
+  source: 'CodesOnline',
+  isRemote: false,
+  auth: 1,
+  ioScore: 100,
+  codeShare: true,
+  spjCode: null,
+  spjLanguage: null,
+  userExtraFile: null,
+  judgeExtraFile: null,
+  isRemoveEndBlank: false,
+  openCaseResult: true,
+  isUploadCase: false,
+  caseVersion: '1',
+  modifiedUser: 'admin',
+  applyPublicProgress: null,
+  isFileIO: false,
+  ioReadFileName: null,
+  ioWriteFileName: null,
+  gmtCreate: new Date().toISOString(),
+  gmtModified: new Date().toISOString(),
+
+  // 前端扩展属性
+  parsedExamples: [
     {
       input: '20 30',
       output: '50'
@@ -314,10 +780,8 @@ const problem: ProblemEntity = ref({
       output: '-5'
     }
   ],
-  hint: '注意处理负数的情况。',
-  source: 'CodesOnline',
-  tags: ['模拟', '数学', '入门'],
-  author: 'root'
+  // 额外的前端属性
+  tags: ['模拟', '数学', '入门']
 })
 
 // 静态提交记录
@@ -341,13 +805,14 @@ const submissions = ref([
 // 初始化编辑器
 const initEditor = () => {
   if (editorContainer.value) {
+    // 初始空字符串，稍后由API返回数据填充
     monacoEditor = monaco.editor.create(editorContainer.value, {
-      value: templates[language.value],
-      language: languageMap[language.value],
-      theme: 'vs-dark', // 可以改为 'vs' 使用浅色主题
+      value: '',
+      language: 'plaintext', // 稍后更新为实际语言
+      theme: 'vs', // 改为浅色主题
       automaticLayout: true,
       minimap: {
-        enabled: true // 是否显示小地图
+        enabled: true
       },
       fontSize: 14,
       fontFamily: "'Consolas', 'Courier New', monospace",
@@ -427,23 +892,37 @@ const copyToInput = (input: string) => {
 
 // 加载示例输入
 const loadSampleInput = () => {
-  if (problem.value.samples.length > 0) {
-    testInput.value = problem.value.samples[0].input
+  if (problem.value.parsedExamples && problem.value.parsedExamples.length > 0) {
+    testInput.value = problem.value.parsedExamples[0].input;
+    ElMessage.success('已加载样例输入');
+  } else {
+    ElMessage.warning('没有可用的样例输入');
   }
 }
 
 // 重置代码
 const resetCode = () => {
-  ElMessageBox.confirm('确定要重置代码吗？', '提示', {
+  const hasTemplate = templates.value && templates.value[language.value];
+
+  let confirmMessage = hasTemplate
+    ? '确定要重置代码到初始模板吗？'
+    : '没有可用的代码模板，将清空编辑器内容。确定要继续吗？';
+
+  ElMessageBox.confirm(confirmMessage, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
     if (monacoEditor) {
-      monacoEditor.setValue(templates[language.value])
+      // 如果有模板，使用模板；否则清空编辑器
+      const resetValue = hasTemplate ? templates.value[language.value] : '';
+      monacoEditor.setValue(resetValue);
+      code.value = resetValue;
     }
-    ElMessage.success('代码已重置')
-  })
+    ElMessage.success(hasTemplate ? '代码已重置为模板' : '编辑器内容已清空');
+  }).catch(() => {
+    // 用户取消操作
+  });
 }
 
 // 获取编辑器内容
@@ -476,28 +955,6 @@ const runTest = async () => {
   }, 1000)
 }
 
-// 提交代码
-const submitCode = async () => {
-  if (!code.value.trim()) {
-    ElMessage.warning('请输入代码')
-    return
-  }
-
-  submitting.value = true
-  setTimeout(() => {
-    ElMessage.success('提交成功')
-    // 添加到提交记录
-    submissions.value.unshift({
-      submitTime: new Date().toLocaleString(),
-      status: 'AC',
-      language: languages.find(l => l.value === language.value)?.label || '',
-      time: 1,
-      memory: 128
-    })
-    submitting.value = false
-  }, 1000)
-}
-
 // 获取题目详情
 const fetchProblemDetail = async () => {
   loading.value = true
@@ -511,6 +968,9 @@ const fetchProblemDetail = async () => {
 
       // 处理题目基本信息
       if (data.problem) {
+        // 尝试解析样例
+        const parsedExamples = parseProblemExamples(data.problem.examples);
+
         // 更新题目基本信息
         problem.value = {
           ...problem.value,
@@ -519,27 +979,102 @@ const fetchProblemDetail = async () => {
           // 将数值难度转换为文本表示
           difficultyText: getDifficultyText(data.problem.difficulty),
           // 处理题目样例
-          samples: parseProblemExamples(data.problem.examples),
+          parsedExamples: parsedExamples,
           // 输入输出描述
-          inputDesc: data.problem.input || '',
-          outputDesc: data.problem.output || '',
+          input: data.problem.input || '',
+          output: data.problem.output || '',
           // 其他字段
-          tags: data.tags?.map(tag => tag.name) || []
+          tags: data.tags?.map(tag => tag.name) || [],
+          // 添加题目统计数据
+          problemCount: data.problemCount || {
+            total: 0,
+            ac: 0,
+            wa: 0,
+            tle: 0,
+            mle: 0,
+            re: 0,
+            ce: 0,
+            se: 0,
+            pe: 0,
+            pa: 0
+          }
         };
+
+        // 如果有样例，设置第一个样例到测试输入
+        if (parsedExamples.length > 0) {
+          testInput.value = parsedExamples[0].input;
+        }
+      }
+
+      // 更新支持的语言列表
+      if (data.languages && data.languages.length > 0) {
+        // 根据后端返回的语言列表更新前端语言选项
+        const newLanguages = data.languages.map(lang => {
+          const langKey = lang.toLowerCase().replace(/[^a-z0-9]/g, '');
+          let value = '';
+
+          // 映射语言名称到编辑器语言ID
+          if (langKey.includes('c++') || langKey.includes('cpp')) {
+            value = 'cpp';
+          } else if (langKey.includes('java')) {
+            value = 'java';
+          } else if (langKey.includes('python')) {
+            value = 'python';
+          } else {
+            // 默认使用原始值
+            value = langKey;
+          }
+
+          return { label: lang, value };
+        });
+
+        languages.value = newLanguages;
+
+        // 更新当前选择的语言为第一个支持的语言
+        if (languages.value.length > 0) {
+          language.value = languages.value[0].value;
+        }
       }
 
       // 处理代码模板
       if (data.codeTemplate) {
-        // 更新代码模板
-        for (const [lang, template] of Object.entries(data.codeTemplate)) {
-          if (templates[lang]) {
-            templates[lang] = template;
+        const newTemplates = {} as Record<string, string>;
+
+        // 处理不同格式的模板
+        if (typeof data.codeTemplate === 'object') {
+          for (const [lang, template] of Object.entries(data.codeTemplate)) {
+            if (typeof template === 'string') {
+              const langKey = lang.toLowerCase().replace(/[^a-z0-9]/g, '');
+              let mappedKey = '';
+
+              // 映射语言名称到模板键
+              if (langKey.includes('c++') || langKey.includes('cpp')) {
+                mappedKey = 'cpp';
+              } else if (langKey.includes('java')) {
+                mappedKey = 'java';
+              } else if (langKey.includes('python')) {
+                mappedKey = 'python';
+              } else {
+                // 默认使用原始值
+                mappedKey = langKey;
+              }
+
+              // 更新对应语言的模板
+              newTemplates[mappedKey] = template;
+            }
           }
         }
 
+        templates.value = newTemplates;
+
         // 更新当前编辑器内容
-        if (monacoEditor && templates[language.value]) {
-          monacoEditor.setValue(templates[language.value]);
+        if (monacoEditor && languages.value.length > 0) {
+          const currentLang = language.value;
+          const template = templates.value[currentLang];
+
+          if (template) {
+            monacoEditor.setValue(template);
+          }
         }
       }
 
@@ -563,15 +1098,33 @@ const parseProblemExamples = (examples: string): { input: string, output: string
     return JSON.parse(examples);
   } catch (e) {
     // 如果不是JSON格式，尝试其他格式解析
-    // 假设examples格式为"input1:output1|input2:output2"
     const samples = [];
-    const samplePairs = examples.split('|');
+    try {
+      // 尝试处理不同格式
+      if (examples.includes('|')) {
+        // 假设格式为 "input1:output1|input2:output2"
+        const samplePairs = examples.split('|');
 
-    for (const pair of samplePairs) {
-      const [input, output] = pair.split(':');
-      if (input && output) {
-        samples.push({ input: input.trim(), output: output.trim() });
+        for (const pair of samplePairs) {
+          const [input, output] = pair.split(':');
+          if (input && output) {
+            samples.push({ input: input.trim(), output: output.trim() });
+          }
+        }
+      } else if (examples.includes('\n')) {
+        // 假设格式为多行文本
+        const lines = examples.split('\n');
+        for (let i = 0; i < lines.length; i += 2) {
+          if (i + 1 < lines.length) {
+            samples.push({
+              input: lines[i].trim(),
+              output: lines[i + 1].trim()
+            });
+          }
+        }
       }
+    } catch (err) {
+      console.error('解析样例失败:', err);
     }
 
     return samples.length > 0 ? samples : [{ input: '示例数据', output: '示例输出' }];
@@ -608,17 +1161,55 @@ const getDifficultyText = (difficulty: number): string => {
 // 监听语言变化
 watch(language, (newLang) => {
   updateEditorLanguage(newLang)
-  if (!code.value || code.value === templates[language.value]) {
-    if (monacoEditor) {
-      monacoEditor.setValue(templates[newLang])
+  if (templates.value[newLang]) {
+    // 只有在模板存在且编辑器内容为空或与旧模板匹配时才更新
+    if (!code.value || code.value === templates.value[language.value]) {
+      if (monacoEditor) {
+        monacoEditor.setValue(templates.value[newLang])
+      }
     }
   }
 })
 
-// 组件挂载时初始化编辑器和加载题目数据
-onMounted(() => {
-  fetchProblemDetail()
+// 在onMounted中添加，确保在编辑器初始化后执行
+onMounted(async () => {
+  await fetchProblemDetail()
   initEditor()
+
+  // 如果有代码模板，则在初始化后设置编辑器的值和语言
+  if (languages.value.length > 0 && templates.value[language.value]) {
+    if (monacoEditor) {
+      monacoEditor.setValue(templates.value[language.value])
+      updateEditorLanguage(language.value)
+    }
+  }
+
+  // 自定义语法高亮颜色，使其在浅色主题中更突出
+  monaco.editor.defineTheme('custom-light', {
+    base: 'vs',
+    inherit: true,
+    rules: [
+      { token: 'keyword', foreground: '0000ff', fontStyle: 'bold' },       // 关键词：蓝色
+      { token: 'string', foreground: 'a31515' },                           // 字符串：红色
+      { token: 'identifier', foreground: '001080' },                       // 标识符：深蓝色
+      { token: 'comment', foreground: '008000', fontStyle: 'italic' },     // 注释：绿色斜体
+      { token: 'number', foreground: '098658' },                           // 数字：青绿色
+      { token: 'operator', foreground: '000000', fontStyle: 'bold' },      // 运算符：黑色加粗
+      { token: 'type', foreground: '267f99' },                             // 类型：湖蓝色
+      { token: 'delimiter', foreground: '000000' }                         // 分隔符：黑色
+    ],
+    colors: {
+      'editor.foreground': '#000000',
+      'editor.background': '#ffffff',
+      'editor.selectionBackground': '#add6ff',
+      'editor.lineHighlightBackground': '#f0f0f0',
+      'editorCursor.foreground': '#000000',
+      'editorWhitespace.foreground': '#d3d3d3'
+    }
+  });
+
+  // 应用自定义主题
+  monaco.editor.setTheme('custom-light');
 })
 
 // 组件卸载时销毁编辑器
@@ -628,11 +1219,293 @@ onBeforeUnmount(() => {
   }
 })
 
-// 初始化代码
-code.value = templates[language.value]
 </script>
 
 <style scoped>
+.test-result.error .test-status {
+  color: #f56c6c;
+}
+
+.test-result.error .test-status .el-icon {
+  color: #f56c6c;
+  font-size: 24px;
+}
+
+/* 测试结果通用样式 */
+.test-result {
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.test-result.success {
+  background-color: rgba(103, 194, 58, 0.05);
+}
+
+.test-result.error {
+  background-color: rgba(245, 108, 108, 0.05);
+}
+
+/* 编辑器底部按钮区域 */
+.editor-bottom-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px;
+  border-top: 1px solid #ebeef5;
+}
+
+/* 在线测试面板 */
+.online-test-panel {
+  border-top: 1px solid #ebeef5;
+  background-color: #fff;
+}
+
+.test-tabs {
+  padding: 0 16px;
+}
+
+.test-io-section {
+  margin-bottom: 16px;
+}
+
+.io-label {
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #606266;
+}
+
+.test-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.test-result {
+  padding: 16px;
+}
+
+.test-result.success {
+  border-radius: 4px;
+}
+
+.test-result-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.test-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.test-status .el-icon {
+  color: #67c23a;
+  font-size: 24px;
+}
+
+.test-info {
+  display: flex;
+  gap: 16px;
+  color: #606266;
+}
+
+.test-time,
+.test-memory {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.test-waiting,
+.test-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: #909399;
+  gap: 16px;
+}
+
+.test-waiting .el-icon,
+.test-loading .el-icon {
+  font-size: 32px;
+}
+
+.is-loading {
+  animation: rotate 1s linear infinite;
+}
+
+.test-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px;
+  border-top: 1px solid #ebeef5;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 统计弹窗样式 */
+.statistics-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-right: 15px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  margin-right: 5px;
+}
+
+.statistics-chart {
+  width: 100%;
+  height: 400px;
+}
+
+.chart {
+  width: 100%;
+  height: 100%;
+}
+
+/* 更新统计弹窗样式，确保居中显示 */
+:deep(.el-dialog) {
+  margin: 0 auto !important;
+  /* 水平居中 */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* 精确定位到屏幕中心 */
+  max-height: 90vh;
+  /* 限制最大高度 */
+  overflow-y: auto;
+  /* 内容过多时允许滚动 */
+}
+
+:deep(.el-dialog__body) {
+  max-height: calc(90vh - 120px);
+  /* 减去头部和底部预留空间 */
+  overflow-y: auto;
+}
+
+/* 使弹窗背景覆盖整个屏幕 */
+:deep(.el-overlay) {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* Markdown 内容样式 */
+.section-content :deep(h1) {
+  font-size: 1.8em;
+  margin: 1em 0 0.5em;
+}
+
+.section-content :deep(h2) {
+  font-size: 1.6em;
+  margin: 1em 0 0.5em;
+}
+
+.section-content :deep(h3) {
+  font-size: 1.4em;
+  margin: 1em 0 0.5em;
+}
+
+.section-content :deep(p) {
+  margin: 0.5em 0;
+  line-height: 1.6;
+}
+
+.section-content :deep(ul),
+.section-content :deep(ol) {
+  padding-left: 2em;
+  margin: 0.5em 0;
+}
+
+.section-content :deep(li) {
+  margin: 0.3em 0;
+}
+
+.section-content :deep(code) {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.9em;
+}
+
+.section-content :deep(pre) {
+  margin: 0.5em 0;
+  padding: 0.5em;
+  background-color: #f6f8fa;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.section-content :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
+}
+
+.section-content :deep(blockquote) {
+  margin: 0.5em 0;
+  padding: 0 1em;
+  color: #6a737d;
+  border-left: 0.25em solid #dfe2e5;
+}
+
+.section-content :deep(table) {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  width: 100%;
+}
+
+.section-content :deep(th),
+.section-content :deep(td) {
+  padding: 6px 13px;
+  border: 1px solid #dfe2e5;
+}
+
+.section-content :deep(th) {
+  background-color: #f6f8fa;
+}
+
+/* KaTeX 数学公式支持 */
+.section-content :deep(.katex) {
+  font-size: 1.1em;
+}
+
 /* 标签气泡样式 */
 .tag-tooltip {
   max-width: 300px !important;
@@ -733,7 +1606,7 @@ code.value = templates[language.value]
 /* ========== 主要布局 ========== */
 .problem-container {
   display: flex;
-  max-width: 1800px;
+  max-width: 2000px;
   margin: 0 auto;
   padding: 20px;
   gap: 24px;
@@ -876,6 +1749,8 @@ code.value = templates[language.value]
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   overflow: hidden;
+  background-color: #ffffff;
+  /* 确保背景为白色 */
 }
 
 /* 编辑器主题自定义 */
@@ -885,6 +1760,12 @@ code.value = templates[language.value]
 
 :deep(.monaco-editor .margin) {
   background-color: #f5f7fa;
+  /* 行号区域背景色 */
+}
+
+/* 确保代码区域背景色 */
+:deep(.monaco-editor .monaco-scrollable-element) {
+  background-color: #ffffff;
 }
 
 /* ========== 测试区域样式 ========== */

@@ -73,6 +73,11 @@ const useUserStore = defineStore('User', {
   },
 
   getters: {
+    //获取token
+    getToken(state) {
+      return state.token
+    },
+
     // 获取用户信息
     getUserInfo(state) {
       return state.userInfo
