@@ -190,7 +190,7 @@ const getStatusName = () => {
   return statusMap[Number(selectedStatus.value) as keyof typeof statusMap]?.text || '未知状态'
 }
 
-// 其余函数保持不变...
+// 获取评测列表数据
 const fetchJudgeList = async () => {
   loading.value = true
   try {
@@ -199,7 +199,9 @@ const fetchJudgeList = async () => {
       limit: pageSize.value,
       onlyMine: onlyMine.value,
       problemID: searchProblemID.value || undefined,
-      status: selectedStatus.value === 'all' ? undefined : Number(selectedStatus.value) || undefined,
+      // 修复这里的逻辑，确保0也能被正确识别
+      status: selectedStatus.value === 'all' ? undefined :
+        (selectedStatus.value === '' ? undefined : Number(selectedStatus.value)),
       username: searchUsername.value || undefined,
       completeProblemID: true
     }
@@ -218,7 +220,6 @@ const fetchJudgeList = async () => {
     loading.value = false
   }
 }
-
 // 格式化内存显示
 const formatMemory = (memory: number) => {
   if (memory < 1024) {
