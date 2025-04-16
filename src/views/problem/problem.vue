@@ -338,7 +338,11 @@ import 'highlight.js/styles/github.css'
 import 'katex/dist/katex.min.css'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Check, Upload, Loading, Timer, Files, CircleCheckFilled, VideoPlay } from '@element-plus/icons-vue'
+import {
+  Check, Upload, Loading, Timer, Files, CircleCheckFilled,
+  VideoPlay, Document, ArrowDown, Position, DataAnalysis,
+  SwitchButton, RefreshLeft, CircleCloseFilled
+} from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor'
 import { getProblemInfo, getTestJudgeResult, submitProblemTestJudge } from '@/api/problem'
 import { ProblemCountVO, ProblemEntity, TestJudgeDTO } from '@/api/problem/type'

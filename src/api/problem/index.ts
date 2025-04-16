@@ -7,6 +7,7 @@ enum API {
   GET_PROBLEM_DETAIL_URL = '/problem/get-problem-detail',
   SUBMIT_PROBLEM_TEST_JUDGE_URL = '/judgeserve/submit-problem-test-judge',
   GET_TEST_JUDGE_RESULT_URL = '/judgeserve/get-test-judge-result',
+  GET_USER_PROBLEM_STATUS_URL = '/problem/get-user-problem-status',
 }
 
 // 获取题目列表
@@ -34,4 +35,9 @@ export const getTestJudgeResult = (testJudgeKey: string) => {
   return request.get(API.GET_TEST_JUDGE_RESULT_URL, {
     params: { testJudgeKey },
   })
+}
+
+// 获取用户提交的题目状态
+export const getUserProblemStatus = (data: { pidList: number[] }) => {
+  return request.post(API.GET_USER_PROBLEM_STATUS_URL, data)
 }

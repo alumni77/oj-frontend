@@ -56,13 +56,13 @@
         </div>
 
         <el-table v-else :data="trainingList" style="width: 100%">
-          <el-table-column prop="rank" label="编号" width="100" align="center">
+          <el-table-column prop="rank" label="编号" width="170" align="center">
             <template #default="{ row }">
               <span class="rank-number">{{ row.rank }}</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="title" label="标题" width="250">
+          <el-table-column prop="title" label="标题" width="300">
             <template #default="{ row }">
               <router-link :to="`/training/${row.id}`" class="training-link">
                 {{ row.title }}
@@ -78,7 +78,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="进度" width="250" align="center">
+          <el-table-column label="进度" width="300" align="center">
             <template #default="{ row }">
               <div class="progress-container">
                 <el-progress :percentage="calculateProgress(row)" :stroke-width="15" :format="percentageFormat"
@@ -93,7 +93,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="author" label="作者" width="150" align="center" />
+          <el-table-column prop="author" label="作者" width="250" align="center" />
 
           <el-table-column label="最近更新" width="250" align="center">
             <template #default="{ row }">
@@ -117,12 +117,13 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { getTrainingCategory, getTrainingList } from '@/api/training'
+import { TrainingCategory, TrainingVO } from '@/api/training/type';
 
 // 训练类别和列表数据
-const categoryList = ref([])
+const categoryList = ref<TrainingCategory[]>([])
 const trainingList = ref([])
 const loading = ref(false)
-const selectedCategory = ref(null)
+const selectedCategory = ref<number | null>(null)
 
 // 分页参数
 const currentPage = ref(1)
@@ -175,7 +176,7 @@ const fetchTrainingList = async () => {
 }
 
 // 格式化日期
-const formatDate = (dateStr) => {
+const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'
 
   try {
@@ -205,7 +206,7 @@ const formatDate = (dateStr) => {
 }
 
 // 按分类筛选
-const filterByCategory = (categoryId) => {
+const filterByCategory = (categoryId: number) => {
   selectedCategory.value = categoryId
   currentPage.value = 1
   fetchTrainingList()
@@ -226,18 +227,18 @@ const refreshData = () => {
 }
 
 // 计算进度百分比
-const calculateProgress = (row) => {
+const calculateProgress = (row: TrainingVO) => {
   if (!row.problemCount || row.problemCount === 0) return 0
   return Math.round((row.acCount / row.problemCount) * 100)
 }
 
 // 格式化进度显示
-const percentageFormat = (percentage) => {
+const percentageFormat = (percentage: number) => {
   return percentage === 100 ? '已完成' : `${percentage}%`
 }
 
 // 获取进度条颜色
-const getProgressColor = (percentage) => {
+const getProgressColor = (percentage: number) => {
   if (percentage < 30) return '#909399'
   if (percentage < 70) return '#E6A23C'
   if (percentage < 100) return '#67C23A'
@@ -245,13 +246,13 @@ const getProgressColor = (percentage) => {
 }
 
 // 处理页码变化
-const handleCurrentChange = (val) => {
+const handleCurrentChange = (val: number) => {
   currentPage.value = val
   fetchTrainingList()
 }
 
 // 处理每页数量变化
-const handleSizeChange = (val) => {
+const handleSizeChange = (val: number) => {
   pageSize.value = val
   currentPage.value = 1
   fetchTrainingList()
@@ -273,7 +274,7 @@ onMounted(() => {
 }
 
 .training-content {
-  max-width: 2000;
+  max-width: 1800px;
   margin: 0 auto;
   padding: 20px;
 }

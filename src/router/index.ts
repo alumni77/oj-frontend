@@ -40,6 +40,13 @@ const router = createRouter({
           meta: { title: '训练' },
         },
         {
+          path: 'training/:tid',
+          component: () => import('@/views/training/trainingDetail.vue'),
+          name: 'trainingDetail',
+          meta: { title: '训练详情' },
+          props: true,
+        },
+        {
           path: 'judge',
           component: () => import('@/views/judge/index.vue'),
           name: 'judge',
