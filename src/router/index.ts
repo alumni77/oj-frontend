@@ -85,6 +85,83 @@ const router = createRouter({
       ],
     },
     {
+      path: '/admin',
+      component: () => import('@/layout/AdminLayout.vue'),
+      name: 'admin',
+      redirect: '/admin/dashboard',
+      children: [
+        {
+          path: 'login',
+          component: () => import('@/views/admin/login.vue'),
+          name: 'adminLogin',
+        },
+        {
+          path: 'dashboard',
+          component: () => import('@/views/admin/dashboard.vue'),
+          name: 'dashboard',
+          meta: { title: '仪表盘' },
+        },
+        {
+          path: 'users',
+          component: () => import('@/views/admin/users.vue'),
+          name: 'adminUsers',
+          meta: { title: '用户管理' },
+        },
+        // {
+        //   path: 'problems',
+        //   redirect: '/admin/problems/list',
+        //   name: 'adminProblems',
+        //   meta: { title: '题目管理' },
+        //   children: [
+        //     {
+        //       path: 'list',
+        //       component: () => import('@/views/admin/problems/list.vue'),
+        //       name: 'adminProblemsList',
+        //       meta: { title: '题目列表' },
+        //     },
+        //     {
+        //       path: 'create',
+        //       component: () => import('@/views/admin/problems/create.vue'),
+        //       name: 'adminProblemsCreate',
+        //       meta: { title: '创建题目' },
+        //     },
+        //     {
+        //       path: 'tags',
+        //       component: () => import('@/views/admin/problems/tags.vue'),
+        //       name: 'adminProblemsTags',
+        //       meta: { title: '标签管理' },
+        //     },
+        //   ],
+        // },
+        // {
+        //   path: 'trainings',
+        //   redirect: '/admin/trainings/list',
+        //   name: 'adminTrainings',
+        //   meta: { title: '训练管理' },
+        //   children: [
+        //     {
+        //       path: 'list',
+        //       component: () => import('@/views/admin/trainings/list.vue'),
+        //       name: 'adminTrainingsList',
+        //       meta: { title: '训练列表' },
+        //     },
+        //     {
+        //       path: 'create',
+        //       component: () => import('@/views/admin/trainings/create.vue'),
+        //       name: 'adminTrainingsCreate',
+        //       meta: { title: '创建训练' },
+        //     },
+        //     {
+        //       path: 'categories',
+        //       component: () => import('@/views/admin/trainings/categories.vue'),
+        //       name: 'adminTrainingsCategories',
+        //       meta: { title: '分类管理' },
+        //     },
+        //   ],
+        // },
+      ],
+    },
+    {
       path: '/404',
       component: () => import('@/views/404.vue'),
       name: '404',
