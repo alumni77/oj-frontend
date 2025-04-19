@@ -69,10 +69,14 @@
     <el-card class="system-card">
       <template #header>
         <div class="card-header">
-          <el-icon class="header-icon">
-            <Monitor />
-          </el-icon>
-          <span>后端系统</span>
+          <div class="header-left">
+            <el-icon class="header-icon">
+              <Monitor />
+            </el-icon>
+            <span>后端系统</span>
+          </div>
+          <el-button type="primary" size="small" :icon="Refresh" circle @click="refreshBackendService"
+            :loading="backendLoading"></el-button>
         </div>
       </template>
 
@@ -139,10 +143,14 @@
     <el-card class="system-card">
       <template #header>
         <div class="card-header">
-          <el-icon class="header-icon">
-            <Connection />
-          </el-icon>
-          <span>判题系统</span>
+          <div class="header-left">
+            <el-icon class="header-icon">
+              <Connection />
+            </el-icon>
+            <span>判题系统</span>
+          </div>
+          <el-button type="primary" size="small" :icon="Refresh" circle @click="refreshJudgeService"
+            :loading="judgeLoading"></el-button>
         </div>
       </template>
 
@@ -201,7 +209,8 @@ import {
   Collection,
   Monitor,
   TrophyBase,
-  Connection
+  Connection,
+  Refresh
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getDashboardInfo, getJudgeServiceInfo, getServiceInfo } from '@/api/admin'
@@ -216,9 +225,11 @@ const stats = ref({
 
 // 后端服务数据
 const backendServices = ref<any[]>([])
+const backendLoading = ref(false)
 
 // 判题服务数据
 const judgeServices = ref<any[]>([])
+const judgeLoading = ref(false)
 
 // 系统状态数据
 const systemStatus = ref({
@@ -271,6 +282,7 @@ const fetchDashboardData = async () => {
 
 // 获取判题系统数据
 const fetchJudgeServiceData = async () => {
+  judgeLoading.value = true
   try {
     const response = await getJudgeServiceInfo()
     if (response.data && response.data.code === 200) {
@@ -293,15 +305,19 @@ const fetchJudgeServiceData = async () => {
           status: true // 假设服务正常运行
         }
       })
+      ElMessage.success('判题系统数据刷新成功')
     }
   } catch (error) {
     console.error('获取判题服务数据失败:', error)
     ElMessage.error('获取判题服务数据失败')
+  } finally {
+    judgeLoading.value = false
   }
 }
 
 // 获取后端系统数据
 const fetchBackendServiceData = async () => {
+  backendLoading.value = true
   try {
     const response = await getServiceInfo()
     if (response.data && response.data.code === 200) {
@@ -329,12 +345,26 @@ const fetchBackendServiceData = async () => {
           status: true // 假设服务正常运行
         }
       })
+      ElMessage.success('后端系统数据刷新成功')
     }
   } catch (error) {
     console.error('获取后端服务数据失败:', error)
     ElMessage.error('获取后端服务数据失败')
+  } finally {
+    backendLoading.value = false
   }
 }
+
+// 刷新后端系统数据
+const refreshBackendService = () => {
+  fetchBackendServiceData()
+}
+
+// 刷新判题系统数据
+const refreshJudgeService = () => {
+  fetchJudgeServiceData()
+}
+
 </script>
 
 <style scoped>
