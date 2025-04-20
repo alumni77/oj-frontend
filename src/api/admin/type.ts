@@ -92,3 +92,44 @@ export interface TagClassification {
   gmtCreate: string
   gmtModified: string
 }
+
+export interface TrainingCategory {
+  id: number
+  name: string
+  color: string
+  gmtCreate: string
+  gmtModified: string
+}
+
+export interface Training {
+  id: number
+  title: string
+  description: string
+  author: string
+  auth: string
+  status: boolean
+  rank: number
+  gmtCreate: string
+  gmtModified: string
+}
+
+export interface TrainingDTO {
+  training: Training
+  trainingCategory: TrainingCategory
+}
+
+export interface TrainingProblem {
+  id: number
+  tid: number
+  pid: number
+  displayId: string
+  rank: number
+  gmtCreate: string
+  gmtModified: string
+}
+
+export interface TrainingProblemDTO {
+  pid: number
+  tid: number
+  displayId: string
+}

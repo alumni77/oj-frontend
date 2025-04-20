@@ -7,9 +7,12 @@ import {
   LoginDTO,
   ProblemDTO,
   TagClassification,
+  TrainingCategory,
+  TrainingDTO,
+  TrainingProblem,
+  TrainingProblemDTO,
 } from './type'
 import { Problem, Tag } from '../problem/type'
-import { id } from 'element-plus/es/locale/index.mjs'
 
 enum API {
   ADMIN_LOGIN_URL = '/admin/login',
@@ -27,6 +30,13 @@ enum API {
   CHANGE_PROBLEM_AUTH_URL = '/admin/problem/change-problem-auth',
   OPERATE_TAGS_URL = '/admin/tag/',
   OPERATE_CLASSIFICATION_URL = '/admin/tag/classification',
+  GET_TRAINING_LIST_URL = '/admin/training/get-training-list',
+  OPERATE_TRAINING_URL = '/admin/training',
+  CHANGE_TRAINING_STATUS = '/admin/training/change-training-status',
+  GET_TRAINING_PROBLEM_LIST_URL = '/admin/training/get-problem-list',
+  OPERATE_TRAINING_PROBLEM = '/admin/training/problem',
+  ADD_PROBLEM_FROM_PUBLE_URL = '/admin/training/add-problem-from-public',
+  OPERATE_TRAINING_CATEGORY_URL = '/admin/training/category',
 }
 
 // 获取管理员登录信息
@@ -155,4 +165,91 @@ export const updateTagClassification = (data: TagClassification) => {
 // 删除题目分类
 export const deleteTagClassification = (id: number) => {
   return request.delete(API.OPERATE_CLASSIFICATION_URL, { params: { id } })
+}
+
+// 获取训练列表
+export const getTrainingList = (params: {
+  limit?: number
+  currentPage?: number
+  keyword?: string
+}) => {
+  return request.get(API.GET_TRAINING_LIST_URL, { params })
+}
+
+// 获取训练详情
+export const getTraining = (tid: number) => {
+  return request.get(API.OPERATE_TRAINING_URL, { params: { tid } })
+}
+
+// 删除训练
+export const deleteTraining = (id: number) => {
+  return request.delete(API.OPERATE_TRAINING_URL, { params: { id } })
+}
+
+// 增加训练
+export const addTraining = (data: TrainingDTO) => {
+  return request.post(API.OPERATE_TRAINING_URL, data)
+}
+
+// 更新训练
+export const updateTraining = (data: TrainingDTO) => {
+  return request.put(API.OPERATE_TRAINING_URL, data)
+}
+
+// 修改训练状态
+export const changeTrainingStatus = (params: {
+  tid: number
+  author: string
+  status: boolean
+}) => {
+  return request.put(API.CHANGE_TRAINING_STATUS, null, { params })
+}
+
+// 获取训练题目列表
+export const getTrainingProblemList = (params: {
+  limit?: number
+  currentPage?: number
+  keyword?: string
+  queryExisted?: boolean
+  tid: number
+}) => {
+  return request.get(API.GET_TRAINING_PROBLEM_LIST_URL, { params })
+}
+
+// 更新训练题目详情
+export const updateProblemInTraining = (data: TrainingProblem) => {
+  return request.put(API.OPERATE_TRAINING_PROBLEM, data)
+}
+
+// 删除训练题目
+export const deleteProblemInTraining = (params: {
+  pid: number
+  tid?: number
+}) => {
+  return request.delete(API.OPERATE_TRAINING_PROBLEM, { params })
+}
+
+// 增加训练题目
+export const addProblemFromPublic = (data: TrainingProblemDTO) => {
+  return request.post(API.ADD_PROBLEM_FROM_PUBLE_URL, data)
+}
+
+// 增加训练分类
+export const addTrainingCategory = (data: TrainingCategory) => {
+  return request.post(API.OPERATE_TRAINING_CATEGORY_URL, data)
+}
+
+// 更新训练分类
+export const updateTrainingCategory = (data: TrainingCategory) => {
+  return request.put(API.OPERATE_TRAINING_CATEGORY_URL, data)
+}
+
+// 删除训练分类
+export const deleteTrainingCategory = (id: number) => {
+  return request.delete(API.OPERATE_TRAINING_CATEGORY_URL, { params: { id } })
+}
+
+// 获取训练分类
+export const getTrainingCategoryList = () => {
+  return request.get(API.OPERATE_TRAINING_CATEGORY_URL)
 }
