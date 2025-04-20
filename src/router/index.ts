@@ -107,32 +107,32 @@ const router = createRouter({
           name: 'adminUsers',
           meta: { title: '用户管理' },
         },
-        // {
-        //   path: 'problems',
-        //   redirect: '/admin/problems/list',
-        //   name: 'adminProblems',
-        //   meta: { title: '题目管理' },
-        //   children: [
-        //     {
-        //       path: 'list',
-        //       component: () => import('@/views/admin/problems/list.vue'),
-        //       name: 'adminProblemsList',
-        //       meta: { title: '题目列表' },
-        //     },
-        //     {
-        //       path: 'create',
-        //       component: () => import('@/views/admin/problems/create.vue'),
-        //       name: 'adminProblemsCreate',
-        //       meta: { title: '创建题目' },
-        //     },
-        //     {
-        //       path: 'tags',
-        //       component: () => import('@/views/admin/problems/tags.vue'),
-        //       name: 'adminProblemsTags',
-        //       meta: { title: '标签管理' },
-        //     },
-        //   ],
-        // },
+        {
+          path: 'problems',
+          redirect: '/admin/problems/list',
+          name: 'adminProblems',
+          meta: { title: '题目管理' },
+          children: [
+            {
+              path: 'list',
+              component: () => import('@/views/admin/problems/list.vue'),
+              name: 'adminProblemsList',
+              meta: { title: '题目列表' },
+            },
+            {
+              path: 'create',
+              component: () => import('@/views/admin/problems/create.vue'),
+              name: 'adminProblemsCreate',
+              meta: { title: '创建题目' },
+            },
+            {
+              path: 'tags',
+              component: () => import('@/views/admin/problems/tags.vue'),
+              name: 'adminProblemsTags',
+              meta: { title: '标签管理' },
+            },
+          ],
+        },
         // {
         //   path: 'trainings',
         //   redirect: '/admin/trainings/list',

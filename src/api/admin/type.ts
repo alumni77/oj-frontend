@@ -1,3 +1,5 @@
+import { Problem, Tag } from '../problem/type'
+
 export interface LoginDTO {
   username: string
   password: string
@@ -30,4 +32,63 @@ export interface GenerateUserParams {
   number_from: number
   number_to: number
   password_length: number
+}
+
+export interface ProblemCase {
+  id?: number
+  pid?: number
+  input: string
+  output: string
+  score?: number
+  groupNum?: number
+  status?: number
+  gmtCreate?: string
+  gmtModified?: string
+}
+
+export interface Language {
+  id?: number
+  contentType?: string
+  description?: string
+  name?: string
+  compileCommand?: string
+  template?: string
+  codeTemplate?: string
+  isSpj?: boolean
+  oj?: string
+  seq?: number
+  gmtCreate?: string
+  gmtModified?: string
+}
+
+export interface CodeTemplate {
+  id?: number
+  pid?: number
+  lid?: number
+  code: string
+  status?: boolean
+  gmtCreate?: string
+  gmtModified?: string
+}
+
+export interface ProblemDTO {
+  problem: Problem
+  samples: ProblemCase[]
+  isUploadTestCase?: boolean
+  uploadTestcaseDir?: string
+  judgeMode?: string
+  changeModeCode?: boolean
+  changeJudgeCaseMode?: boolean
+  languages?: Language[]
+  tags?: Tag[]
+  codeTemplates?: CodeTemplate[]
+}
+
+export interface TagClassification {
+  id: number
+  name: string
+  oj: string
+  rank: number
+  gmtCreate: string
+  gmtModified: string
 }
