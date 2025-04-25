@@ -160,12 +160,10 @@ export interface TestJudgeDTO {
   mode: string
 }
 
-export interface SubmitJudgeDTO{
-  pid:string
-  language:string
-  code:string
-  cid:number
-  tid:number
-  gid:number
-  isRemote:boolean
+export interface SubmitJudgeDTO {
+  pid: string
+  language: string
+  code: string
+  tid: number
+  isRemote: boolean
 }

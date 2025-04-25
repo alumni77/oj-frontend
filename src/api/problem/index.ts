@@ -49,6 +49,9 @@ export const submitProblemJudge = (data: SubmitJudgeDTO) => {
 }
 
 // 获取提交详情
+// 修改 getSubmission API 函数
 export const getSubmission = (submitId: number) => {
-  return request.get(API.GET_SUBMISSION_URL, { params: submitId })
+  return request.get(API.GET_SUBMISSION_URL, {
+    params: { submitId },
+  })
 }
