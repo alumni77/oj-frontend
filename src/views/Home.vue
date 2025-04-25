@@ -247,11 +247,25 @@ const fetchCarouselData = async () => {
     const response = await GetHomeCarousel()
 
     if (response.data && response.data.code === 200) {
-      const carouselData = response.data.data || []
-      carouselItems.value = carouselData.map((item: { id: number; url: string }) => ({
-        id: item.id,
-        image: item.url,
-      }))
+      // const carouselData = response.data.data || []
+      // carouselItems.value = carouselData.map((item: { id: number; url: string }) => ({
+      //   id: item.id,
+      //   image: item.url,
+      // }))
+      carouselItems.value = [
+      {
+        id: 1,
+        image: new URL('@/assets/images/carousel-1.jpg', import.meta.url).href
+      },
+      // {
+      //   id: 2,
+      //   image: new URL('@/assets/carousel/slide2.jpg', import.meta.url).href
+      // },
+      // {
+      //   id: 3,
+      //   image: new URL('@/assets/carousel/slide3.jpg', import.meta.url).href
+      // }
+    ]
     } else {
       ElMessage.error('获取轮播图数据失败')
     }

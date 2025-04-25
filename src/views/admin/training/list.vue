@@ -315,7 +315,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed} from 'vue'
 import {
   Tickets, Search, Edit, Delete, Plus, View, Document
 } from '@element-plus/icons-vue'
@@ -340,6 +340,7 @@ import mk from 'markdown-it-katex'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import 'katex/dist/katex.min.css'
+import {useRouter} from 'vue-router'
 
 // Markdown处理
 const md = new MarkdownIt({
@@ -567,12 +568,10 @@ const getDifficultyType = (difficulty: number) => {
 }
 
 // 训练表单操作
+const router = useRouter() 
 const handleAddTraining = () => {
-  dialogType.value = 'add'
-  resetForm()
-  dialogVisible.value = true
+  router.push('/admin/trainings/create')
 }
-
 const handleEdit = async (row) => {
   dialogType.value = 'edit'
   resetForm()

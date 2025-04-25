@@ -11,7 +11,7 @@
             <span>{{ isEdit ? '编辑训练' : '创建训练' }}</span>
           </div>
           <div class="header-actions">
-            <el-button @click="$router.push('/admin/training/list')">返回列表</el-button>
+            <el-button @click="$router.push('/admin/trainings/list')">返回列表</el-button>
           </div>
         </div>
       </template>
@@ -411,7 +411,7 @@ const submitTraining = async () => {
 
     if (response?.data?.code === 200) {
       ElMessage.success(isEdit.value ? '更新训练成功' : '创建训练成功')
-      router.push('/admin/training/list')
+      router.push('/admin/trainings/list')
     } else {
       ElMessage.error(response?.data?.msg || (isEdit.value ? '更新训练失败' : '创建训练失败'))
     }

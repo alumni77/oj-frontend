@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -178,6 +179,25 @@ const router = createRouter({
       top: 0,
     }
   },
+})
+
+// 添加全局前置守卫
+router.beforeEach((to, from, next) => {
+  // 获取token
+  const token = localStorage.getItem('token')
+  
+  // 检查是否是访问admin相关路由，且不是admin登录页
+  if (to.path.startsWith('/admin') && to.path !== '/admin/login') {
+    // 如果没有token，重定向到管理员登录页
+    if (!token) {
+      ElMessage.warning('请先登录')
+      next('/admin/login')
+      return
+    }
+  }
+  
+  // 其他情况正常放行
+  next()
 })
 
 export default router

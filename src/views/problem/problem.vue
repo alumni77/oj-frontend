@@ -344,7 +344,7 @@ import {
   SwitchButton, RefreshLeft, CircleCloseFilled
 } from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor'
-import { getProblemInfo, getTestJudgeResult, submitProblemTestJudge } from '@/api/problem'
+import { getProblemInfo, getTestJudgeResult, submitProblemTestJudge,getSubmission,submitProblemJudge } from '@/api/problem'
 import { ProblemCountVO, ProblemEntity, TestJudgeDTO } from '@/api/problem/type'
 // 导入图表组件和相关功能
 import { use } from 'echarts/core'
@@ -502,7 +502,7 @@ const getTestResult = async (testJudgeKey: string) => {
     testStatus.value = 'input'
   }
 }
-// 保留并增强第一个 submitCode 函数
+// 提交代码进行评测
 const submitCode = async () => {
   if (!code.value.trim()) {
     ElMessage.warning('请输入代码')
@@ -513,39 +513,38 @@ const submitCode = async () => {
 
   try {
     // 准备评测数据
-    const submitJudgeData = {
-      pid: Number(problemId.value),
+    const submitJudgeData: SubmitJudgeDTO = {
+      pid: problem.value.problemId, // 使用题目ID
       language: languages.value.find(l => l.value === language.value)?.label || 'C++',
       code: code.value,
-      type: "public",
-      mode: languageMap[language.value] || 'text/x-c++src',
-      isRemoteJudge: false
+      tid: null,  // 默认值
+      isRemote: false, // 默认值
+      cid: undefined, // 可选参数
+      gid: undefined, // 可选参数
     }
 
-    // 向后端发送提交评测请求
-    const response = await fetch('/api/judge/submit-judge', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(submitJudgeData)
-    })
+    // 使用API函数提交评测
+    const response = await submitProblemJudge(submitJudgeData)
 
-    const result = await response.json()
-
-    if (result.code === 200) {
-      ElMessage.success('提交成功，评测中')
-      // 可以跳转到提交记录页面或者显示提交结果
-      // 可选: 添加到提交记录
+    if (response.data && response.data.code === 200) {
+      // 获取提交ID
+      const submitId = response.data.data.submitId
+      
+      ElMessage.success('提交成功，评测中...')
+      
+      // 添加到提交记录（可选，如果你有提交记录列表）
       submissions.value.unshift({
         submitTime: new Date().toLocaleString(),
         status: '评测中',
-        language: languages.value.find(l => l.value === language.value)?.label || 'C++',
+        language: submitJudgeData.language,
         time: 0,
         memory: 0
       })
+      
+      // 轮询获取评测结果
+      await pollSubmissionResult(submitId)
     } else {
-      ElMessage.error(result.msg || '提交评测失败')
+      ElMessage.error(response.data?.msg || '提交评测失败')
     }
   } catch (error) {
     console.error('提交评测失败:', error)
@@ -553,6 +552,91 @@ const submitCode = async () => {
   } finally {
     submitting.value = false
   }
+}
+
+// 轮询获取提交结果
+const pollSubmissionResult = async (submitId: number) => {
+  try {
+    // 轮询参数设置
+    let maxAttempts = 5
+    let attempts = 0
+    
+    const poll = async () => {
+      if (attempts >= maxAttempts) {
+        ElMessage.warning('获取评测结果超时，请在提交记录中查看')
+        return
+      }
+      
+      attempts++
+      
+      try {
+        const response = await getSubmission(submitId)
+        console.log(response);
+
+        if (response.data && response.data.code === 200) {
+          
+          const submissionData = response.data.data.submission
+          
+          // 检查评测状态
+          if (submissionData.status !== 5 && submissionData.status !== 6 && submissionData.status !== 8) {
+            // 评测完成，更新状态
+            const statusText = getStatusText(submissionData.status)
+            
+            // 更新提交记录列表（如果有）
+            if (submissions.value.length > 0) {
+              submissions.value[0].status = statusText
+              submissions.value[0].time = submissionData.time
+              submissions.value[0].memory = submissionData.memory
+            }
+            
+            // 显示评测结果
+            if (submissionData.status === 0) {
+              // 通过
+              ElMessage.success(`通过! 耗时: ${submissionData.time}ms, 内存: ${submissionData.memory}KB`)
+            } else {
+              // 未通过
+              ElMessage.warning(`${statusText}: ${submissionData.errorMessage || ''}`)
+            }
+            
+            return // 评测结束，退出轮询
+          } else {
+            // 评测中，继续轮询
+            setTimeout(poll, 1000)
+          }
+        } else {
+          // 请求失败，继续轮询
+          setTimeout(poll, 1000)
+        }
+      } catch (error) {
+        // 出错继续轮询
+        setTimeout(poll, 1000)
+      }
+    }
+    
+    // 开始轮询
+    await poll()
+  } catch (error) {
+    console.error('轮询提交结果失败:', error)
+  }
+}
+
+// 获取评测状态文本
+const getStatusText = (status: number): string => {
+  const statusMap: Record<number, string> = {
+    0: 'AC', // 通过
+    1: 'TLE', // 超时
+    2: 'MLE', // 内存超限
+    3: 'RE', // 运行错误
+    4: 'CE', // 编译错误
+    5: 'Pending', // 等待评测
+    6: 'Judging', // 评测中
+    7: 'WA', // 答案错误
+    8: 'SE', // 系统错误
+    9: 'PE', // 格式错误
+    10: 'PA', // 部分通过
+  }
+  
+  return statusMap[status] || '未知状态'
 }
 
 // 注册 ECharts 组件

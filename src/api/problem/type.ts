@@ -159,3 +159,13 @@ export interface TestJudgeDTO {
   isRemoteJudge: boolean
   mode: string
 }
+
+export interface SubmitJudgeDTO{
+  pid:string
+  language:string
+  code:string
+  cid:number
+  tid:number
+  gid:number
+  isRemote:boolean
+}
